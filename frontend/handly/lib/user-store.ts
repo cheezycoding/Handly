@@ -9,10 +9,10 @@ export interface UserData {
 
 const DEFAULT_USER: UserData = {
   name: "Alex",
-  xp: 1250,
-  level: 5,
-  levelProgress: 65,
-  streak: 5,
+  xp: 0,
+  level: 0,
+  levelProgress: 0,
+  streak: 0,
   completedLessons: [],
 }
 

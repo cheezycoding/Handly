@@ -179,10 +179,10 @@ export default function LessonPage() {
       )
     }
 
-    const displayStreak = userData?.streak ?? 5
-    const displayXp = userData?.xp ?? 1250
-    const displayLevel = userData?.level ?? 5
-    const displayLevelProgress = userData?.levelProgress ?? 65
+    const displayStreak = userData?.streak ?? 0
+    const displayXp = userData?.xp ?? 0
+    const displayLevel = userData?.level ?? 0
+    const displayLevelProgress = userData?.levelProgress ?? 0
 
     return (
       <main className="min-h-screen bg-background">
