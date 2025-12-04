@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign Language Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #1a1a2e; 
+            color: white; 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 20px; color: #eee; }
+        .container { display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; }
+        .video-box { 
+            background: #16213e; 
+            padding: 20px; 
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        video { 
+            width: 480px; 
+            height: 360px; 
+            background: #000; 
+            border-radius: 8px;
+            transform: scaleX(-1);
+        }
+        .controls {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 12px;
+            min-width: 250px;
+        }
+        .sign-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #0f3460;
+            color: white;
+            transition: all 0.2s;
+        }
+        .sign-btn:hover { background: #1a508b; }
+        .sign-btn.active { background: #e94560; }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+        }
+        .status.waiting { background: #0f3460; }
+        .status.success { background: #2ecc71; }
+        .status.fail { background: #e74c3c; }
+        .status.trying { background: #f39c12; }
+        .timer {
+            margin-top: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .prediction {
+            margin-top: 15px;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        #result {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+    <h1>🤟 Sign Language Test</h1>
+    
+    <div class="container">
+        <div class="video-box">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div class="controls">
+            <h3 style="margin-bottom: 15px;">Select a sign to test:</h3>
+            {% for sign in signs %}
+            <button class="sign-btn" data-sign="{{ sign }}">{{ sign.upper() }}</button>
+            {% endfor %}
+            
+            <div id="status" class="status waiting">
+                Select a sign to start
+            </div>
+            
+            <div id="timer" class="timer" style="display:none;">30</div>
+            
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        const timer = document.getElementById('timer');
+        const result = document.getElementById('result');
+        
+        let currentTarget = null;
+        let isRunning = false;
+        let sessionId = Math.random().toString(36).substr(2, 9);
+        let timeLeft = 30;
+        let timerInterval = null;
+        
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                canvas.width = 480;
+                canvas.height = 360;
+            })
+            .catch(err => {
+                status.textContent = 'Camera error: ' + err.message;
+            });
+        
+        document.querySelectorAll('.sign-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Clear previous timer
+                if (timerInterval) clearInterval(timerInterval);
+                
+                document.querySelectorAll('.sign-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTarget = btn.dataset.sign;
+                isRunning = true;
+                result.textContent = '';
+                status.className = 'status trying';
+                status.textContent = 'Show sign: ' + currentTarget.toUpperCase();
+                
+                // Start 30 second timer
+                timeLeft = 30;
+                timer.style.display = 'block';
+                timer.textContent = timeLeft;
+                timer.style.color = 'white';
+                
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    timer.textContent = timeLeft;
+                    
+                    if (timeLeft <= 10) timer.style.color = '#e74c3c';
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        isRunning = false;
+                        status.className = 'status fail';
+                        status.textContent = 'Time\'s up!';
+                        result.textContent = '✗ FAIL';
+                        result.style.color = '#e74c3c';
+                    }
+                }, 1000);
+                
+                fetch('/reset', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({session: sessionId})
+                });
+            });
+        });
+        
+        setInterval(() => {
+            if (!isRunning || !currentTarget) return;
+            
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const frameData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            fetch('/predict', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({frame: frameData, session: sessionId})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!isRunning) return;
+                
+                if (data.ready && data.prediction) {
+                    if (data.prediction === currentTarget && data.confidence > 0.6) {
+                        clearInterval(timerInterval);
+                        isRunning = false;
+                        status.className = 'status success';
+                        status.textContent = 'PASS';
+                        result.textContent = '✓ ' + currentTarget.toUpperCase();
+                        result.style.color = '#2ecc71';
+                        timer.style.color = '#2ecc71';
+                    }
+                }
+            });
+        }, 100);
+    </script>
+</body>
+</html>

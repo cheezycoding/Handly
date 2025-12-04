@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.eggs/
+*.egg
+venv/
+.venv/
+env/
+
+# Data files (too large)
+*.mp4
+*.npy
+*.pkl
+*.keras
+*.h5
+WLASL_v0.3.json
+
+# Node
+node_modules/
+.next/
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+
+# Cache
+.cache/
+
