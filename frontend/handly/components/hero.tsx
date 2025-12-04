@@ -55,7 +55,7 @@ export function Hero() {
                 </button>
               ) : (
                 <Link href="/lesson?id=1">
-                  <button className="w-20 h-20 bg-primary rounded-full flex items-center justify-center shadow-[0_6px_0_0] shadow-primary/50 hover:shadow-[0_3px_0_0] hover:translate-y-[3px] transition-all border-4 border-primary">
+                  <button className="w-20 h-20 bg-primary rounded-full flex items-center justify-center shadow-[0_6px_0_0] shadow-primary/50 hover:shadow-[0_3px_0_0] hover:translate-y-[3px] transition-all border-4 border-primary animate-pulse-glow">
                     <Star className="w-10 h-10 text-primary-foreground fill-primary-foreground" />
                   </button>
                 </Link>
